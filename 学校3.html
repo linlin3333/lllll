@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title></title>
+    <style>
+        :root {
+            --bg: #0a0a18;
+            --panel-bg: rgba(10, 15, 30, 0.85);
+            --text: #c8d8f0;
+            --accent: #5b9cf5;
+            --accent2: #3b6fd4;
+            --slider-track: #1a2a44;
+            --button-bg: rgba(30, 50, 80, 0.7);
+            --button-active: rgba(60, 110, 200, 0.7);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #020510;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            font-family: 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .control-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: var(--panel-bg);
+            border-radius: 20px;
+            padding: 16px 20px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(120, 160, 220, 0.25);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 60px rgba(60, 120, 220, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: min(88vw, 440px);
+            transition: transform 0.3s ease;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .control-label {
+            color: var(--text);
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            min-width: 48px;
+        }
+
+        .control-label .icon {
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        .slider-container {
+            flex: 1;
+            min-width: 100px;
+            position: relative;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--slider-track);
+            outline: none;
+            cursor: pointer;
+            border: 1px solid rgba(100, 140, 200, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #8cc8ff, #3b7ddf);
+            cursor: pointer;
+            border: 2px solid rgba(180, 210, 255, 0.6);
+            box-shadow: 0 0 18px rgba(70, 140, 240, 0.55), 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.1);
+            box-shadow: 0 0 28px rgba(100, 170, 255, 0.75), 0 4px 16px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+        .btn-row .btn {
+            flex: 1;
+            min-width: 0;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 8px;
+            border-radius: 25px;
+            border: 1px solid rgba(140, 180, 230, 0.35);
+            background: var(--button-bg);
+            color: var(--text);
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            letter-spacing: 0.03em;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .btn:active {
+            transform: scale(0.94);
+            background: var(--button-active);
+            box-shadow: 0 0 20px rgba(70, 140, 240, 0.4);
+            border-color: rgba(160, 200, 255, 0.6);
+        }
+
+        .btn.active {
+            background: var(--button-active);
+            border-color: rgba(160, 200, 255, 0.7);
+            box-shadow: 0 0 22px rgba(70, 150, 250, 0.5);
+            color: #e0efff;
+        }
+
+        .btn .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        .btn.active .dot {
+            background: #8cd0ff;
+            box-shadow: 0 0 10px #6ab8ff;
+        }
+
+        .hint {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(180, 200, 230, 0.7);
+            font-size: 0.75rem;
+            letter-spacing: 0.04em;
+            z-index: 8;
+            text-align: center;
+            pointer-events: none;
+            transition: opacity 1.5s ease;
+        }
+
+        @media (max-width: 480px) {
+            .control-panel {
+                bottom: 10px;
+                padding: 12px 14px;
+                gap: 8px;
+                border-radius: 16px;
+            }
+            .btn {
+                padding: 8px 6px;
+                font-size: 0.7rem;
+                border-radius: 20px;
+                gap: 3px;
+            }
+            .btn .dot {
+                width: 6px;
+                height: 6px;
+            }
+            .control-label {
+                font-size: 0.75rem;
+                min-width: 38px;
+            }
+            input[type="range"]::-webkit-slider-thumb {
+                width: 28px;
+                height: 28px;
+            }
+            .hint {
+                top: 8px;
+                font-size: 0.7rem;
+            }
+            .btn-row {
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hint" id="hint">🖐️ 单指旋转 &nbsp;|&nbsp; 🤏 双指缩放 &nbsp;&nbsp; </div>
+
+    <div class="control-panel" id="controlPanel">
+        <div class="control-row">
+            <span class="control-label">
+                <span class="icon">🌷</span>展开
+            </span>
+            <div class="slider-container">
+                <input type="range" id="bloomSlider" min="0" max="100" value="65" step="1">
+            </div>
+            <span style="color:var(--text);font-size:0.75rem;min-width:32px;text-align:right;" id="bloomValue">65%</span>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn active" id="btnMicroMotion">
+                <span class="dot"></span>粒子微动
+            </button>
+            <button class="btn" id="btnAutoBloom">
+                <span>🔄</span>自动开合
+            </button>
+            <button class="btn" id="btnResetView">
+                <span>🏠</span>重置视角
+            </button>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ==================== DOM元素 ====================
+        const bloomSlider = document.getElementById('bloomSlider');
+        const bloomValueEl = document.getElementById('bloomValue');
+        const btnMicroMotion = document.getElementById('btnMicroMotion');
+        const btnAutoBloom = document.getElementById('btnAutoBloom');
+        const btnResetView = document.getElementById('btnResetView');
+        const hintEl = document.getElementById('hint');
+
+        // ==================== 状态变量 ====================
+        let bloomAngle = 0.65;
+        let targetBloomAngle = 0.65;
+        let microMotionEnabled = true;
+        let autoBloomEnabled = false;
+        let autoBloomDirection = 1;
+        let autoBloomSpeed = 0.18;
+
+        // ==================== 花心位置 (悬浮) ====================
+        const flowerCenterY = 0.8;
+
+        // ==================== Three.js 初始化 ====================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020510);
+        scene.fog = new THREE.Fog(0x020510, 18, 60);
+
+        const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.5, 90);
+        camera.position.set(7.5, 3.5, 12.0);
+        camera.lookAt(0, flowerCenterY, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.45;
+        document.body.appendChild(renderer.domElement);
+
+        // ==================== OrbitControls ====================
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, flowerCenterY, 0);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.minDistance = 3.5;
+        controls.maxDistance = 22;
+        controls.maxPolarAngle = Math.PI * 0.78;
+        controls.minPolarAngle = 0.12;
+        controls.touches = {
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+        };
+        controls.update();
+
+        // ==================== 灯光 ====================
+        const ambientLight = new THREE.AmbientLight(0x2a3d5c, 2.2);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffeedd, 4.5);
+        sunLight.position.set(12, 10, 6);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 1024;
+        sunLight.shadow.mapSize.height = 1024;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 55;
+        sunLight.shadow.camera.left = -14;
+        sunLight.shadow.camera.right = 14;
+        sunLight.shadow.camera.top = 14;
+        sunLight.shadow.camera.bottom = -14;
+        sunLight.shadow.bias = -0.0001;
+        sunLight.shadow.normalBias = 0.02;
+        scene.add(sunLight);
+
+        const rimLight = new THREE.DirectionalLight(0x8899cc, 2.8);
+        rimLight.position.set(-5, 3, -7);
+        scene.add(rimLight);
+
+        const flowerSpotLight = new THREE.SpotLight(0xaaccff, 12, 18, Math.PI / 4.2, 0.3, 0.5);
+        flowerSpotLight.position.set(0, flowerCenterY + 3, 4);
+        flowerSpotLight.castShadow = true;
+        flowerSpotLight.shadow.mapSize.width = 512;
+        flowerSpotLight.shadow.mapSize.height = 512;
+        scene.add(flowerSpotLight);
+
+        // ==================== 粒子纹理 ====================
+        function createGlowTexture(innerColor, outerColor, size = 128) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = size / 2;
+
+            const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.005, centerX, centerY, radius * 0.88);
+            gradient.addColorStop(0, innerColor || 'rgba(255,255,255,1)');
+            gradient.addColorStop(0.04, innerColor || 'rgba(255,255,255,0.99)');
+            gradient.addColorStop(0.18, 'rgba(210,235,255,0.9)');
+            gradient.addColorStop(0.42, 'rgba(100,170,245,0.6)');
+            gradient.addColorStop(0.68, 'rgba(40,85,190,0.18)');
+            gradient.addColorStop(0.84, 'rgba(10,30,70,0.04)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const glowTextureSharp = createGlowTexture('rgba(160,200,230,0.7)', 'rgba(60,130,220,0)');
+        glowTextureSharp.needsUpdate = true;
+        const glowTextureSoft = createGlowTexture('rgba(160,200,225,0.65)', 'rgba(40,100,200,0)');
+        glowTextureSoft.needsUpdate = true;
+        const glowTextureTiny = createGlowTexture('rgba(160,200,230,0.7)', 'rgba(50,120,210,0)', 64);
+        glowTextureTiny.needsUpdate = true;
+
+        // ==================== 花瓣粒子系统 (完全平铺 + 渐变色) ====================
+        const numOuterPetals = 16;
+        const numMidPetals = 8;
+        const numInnerPetals = 16;
+
+        const outerPetalLength = 3.6;
+        const midPetalLength = 3.0;
+        const innerPetalLength = 2.5;
+        const outerPetalMaxWidth = 1.5;
+        const midPetalMaxWidth = 1.2;
+        const innerPetalMaxWidth = 0.95;
+        // 弯曲量设为0，完全平直
+        const outerCurveAmount = 0.0;
+        const midCurveAmount = 0.0;
+        const innerCurveAmount = 0.0;
+
+        const closedAngleOuter = 3;
+        const openAngleOuter = 90;   // 水平展开
+        const closedAngleMid = 3;
+        const openAngleMid = 85;
+        const closedAngleInner = 3;
+        const openAngleInner = 80;
+
+        const allPetalParticleData = [];
+
+        function getPetalLocalPosition(t, s, petalLength, maxWidth, curveAmount) {
+            const y = t * petalLength;
+            const widthAtT = Math.sin(t * Math.PI) * maxWidth * (1 + 0.22 * Math.sin(t * Math.PI * 2.3));
+            const xWidth = s * 2.0 * widthAtT;
+            // 曲线偏移为0
+            const curveOffset = curveAmount * Math.sin(t * Math.PI * 0.88) * (1 - 0.08 * t);
+            const localPos = new THREE.Vector3(
+                xWidth + curveOffset,
+                y,
+                0.0  // 厚度为0，完全扁平
+            );
+            return { position: localPos, normalizedT: t };
+        }
+
+        function createPetalParticles(petalIndex, totalPetals, layerType, offsetAngle = 0) {
+            const isOuter = layerType === 'outer';
+            const isMid = layerType === 'mid';
+            const isInner = layerType === 'inner';
+
+            const petalLength = isOuter ? outerPetalLength : (isMid ? midPetalLength : innerPetalLength);
+            const maxWidth = isOuter ? outerPetalMaxWidth : (isMid ? midPetalMaxWidth : innerPetalMaxWidth);
+            const curveAmount = isOuter ? outerCurveAmount : (isMid ? midCurveAmount : innerCurveAmount);
+            const closedAngle = isOuter ? closedAngleOuter : (isMid ? closedAngleMid : closedAngleInner);
+            const openAngle = isOuter ? openAngleOuter : (isMid ? openAngleMid : openAngleInner);
+
+            const phiBase = (petalIndex / totalPetals) * Math.PI * 2 + offsetAngle;
+            const phi = phiBase;
+
+            const radialDir = new THREE.Vector3(Math.cos(phi), 0, Math.sin(phi));
+            const tangentDir = new THREE.Vector3(-Math.sin(phi), 0, Math.cos(phi));
+
+            const numLengthSamples = isOuter ? 50 : (isMid ? 42 : 34);
+            const numWidthSamples = isOuter ? 30 : (isMid ? 25 : 20);
+            const data = {
+                baseClosed: [],
+                baseOpen: [],
+                colors: [],
+                petalIndex,
+                layer: layerType,
+                phi,
+                radialDir: radialDir.clone(),
+                tangentDir: tangentDir.clone(),
+            };
+
+            const closedAngleRad = THREE.MathUtils.degToRad(closedAngle);
+            const openAngleRad = THREE.MathUtils.degToRad(openAngle);
+
+            for (let i = 0; i < numLengthSamples; i++) {
+                const t = i / (numLengthSamples - 1);
+                const tAdjusted = Math.pow(t, 0.78);
+                for (let j = 0; j < numWidthSamples; j++) {
+                    const s = (j / (numWidthSamples - 1)) - 0.5;
+                    const sJittered = s + (Math.random() - 0.5) * 0.08;
+
+                    const { position: localPos, normalizedT } = getPetalLocalPosition(
+                        tAdjusted, sJittered, petalLength, maxWidth, curveAmount
+                    );
+
+                    const closedRotMatrix = new THREE.Matrix4().makeRotationAxis(tangentDir, closedAngleRad);
+                    const closedDir = new THREE.Vector3(0, 1, 0).applyMatrix4(closedRotMatrix).normalize();
+                    const closedPos = new THREE.Vector3(0, flowerCenterY, 0);
+                    closedPos.addScaledVector(closedDir, localPos.y);
+                    closedPos.addScaledVector(radialDir, localPos.x);
+                    closedPos.addScaledVector(tangentDir, localPos.z);
+
+                    const openRotMatrix = new THREE.Matrix4().makeRotationAxis(tangentDir, openAngleRad);
+                    const openDir = new THREE.Vector3(0, 1, 0).applyMatrix4(openRotMatrix).normalize();
+                    const openPos = new THREE.Vector3(0, flowerCenterY, 0);
+                    openPos.addScaledVector(openDir, localPos.y);
+                    openPos.addScaledVector(radialDir, localPos.x);
+                    openPos.addScaledVector(tangentDir, localPos.z);
+
+                    data.baseClosed.push(closedPos);
+                    data.baseOpen.push(openPos);
+
+                    // 渐变色：从深粉到浅粉
+                    const colorMix = normalizedT;
+                    const deepPink = new THREE.Color('#5c0e1f');
+                    const midPink = new THREE.Color('#d42a5c');
+                    const lightPink = new THREE.Color('#f06d8a');
+                    const whitePink = new THREE.Color('#c08a9a');
+
+                    let color;
+                    if (colorMix < 0.35) {
+                        color = deepPink.clone().lerp(midPink, colorMix / 0.35);
+                    } else if (colorMix < 0.68) {
+                        color = midPink.clone().lerp(lightPink, (colorMix - 0.35) / 0.33);
+                    } else {
+                        color = lightPink.clone().lerp(whitePink, (colorMix - 0.68) / 0.32);
+                    }
+                    const edgeFactor = Math.abs(sJittered) * 1.4;
+                    color.multiplyScalar(1 - edgeFactor * 0.18);
+                    data.colors.push(color);
+                }
+            }
+            return data;
+        }
+
+        const outerOffset = 0;
+        const midOffset = Math.PI / numOuterPetals;
+        const innerOffset = Math.PI / numMidPetals;
+
+        for (let i = 0; i < numOuterPetals; i++) {
+            allPetalParticleData.push(createPetalParticles(i, numOuterPetals, 'outer', outerOffset));
+        }
+        for (let i = 0; i < numMidPetals; i++) {
+            allPetalParticleData.push(createPetalParticles(i, numMidPetals, 'mid', midOffset));
+        }
+        for (let i = 0; i < numInnerPetals; i++) {
+            allPetalParticleData.push(createPetalParticles(i, numInnerPetals, 'inner', innerOffset));
+        }
+
+        const totalPetalParticles = allPetalParticleData.reduce((sum, d) => sum + d.baseClosed.length, 0);
+
+        const petalPositionsArray = new Float32Array(totalPetalParticles * 3);
+        const petalColorsArray = new Float32Array(totalPetalParticles * 3);
+        const petalBaseClosedArray = new Float32Array(totalPetalParticles * 3);
+        const petalBaseOpenArray = new Float32Array(totalPetalParticles * 3);
+        const petalRandomOffsets = new Float32Array(totalPetalParticles * 6);
+
+        let globalParticleIndex = 0;
+        for (const data of allPetalParticleData) {
+            for (let k = 0; k < data.baseClosed.length; k++) {
+                const idx3 = globalParticleIndex * 3;
+                const closedPos = data.baseClosed[k];
+                const openPos = data.baseOpen[k];
+                const color = data.colors[k];
+
+                const pos = closedPos.clone().lerp(openPos, bloomAngle);
+                petalPositionsArray[idx3] = pos.x;
+                petalPositionsArray[idx3 + 1] = pos.y;
+                petalPositionsArray[idx3 + 2] = pos.z;
+
+                petalBaseClosedArray[idx3] = closedPos.x;
+                petalBaseClosedArray[idx3 + 1] = closedPos.y;
+                petalBaseClosedArray[idx3 + 2] = closedPos.z;
+
+                petalBaseOpenArray[idx3] = openPos.x;
+                petalBaseOpenArray[idx3 + 1] = openPos.y;
+                petalBaseOpenArray[idx3 + 2] = openPos.z;
+
+                petalColorsArray[idx3] = color.r;
+                petalColorsArray[idx3 + 1] = color.g;
+                petalColorsArray[idx3 + 2] = color.b;
+
+                const idx6 = globalParticleIndex * 6;
+                petalRandomOffsets[idx6] = Math.random() * Math.PI * 2;
+                petalRandomOffsets[idx6 + 1] = 1.1 + Math.random() * 3.0;
+                petalRandomOffsets[idx6 + 2] = 0.01 + Math.random() * 0.045;
+                petalRandomOffsets[idx6 + 3] = Math.random() * Math.PI * 2;
+                petalRandomOffsets[idx6 + 4] = 1.1 + Math.random() * 3.0;
+                petalRandomOffsets[idx6 + 5] = 0.01 + Math.random() * 0.045;
+
+                globalParticleIndex++;
+            }
+        }
+
+        const petalGeometry = new THREE.BufferGeometry();
+        petalGeometry.setAttribute('position', new THREE.BufferAttribute(petalPositionsArray, 3));
+        petalGeometry.setAttribute('color', new THREE.BufferAttribute(petalColorsArray, 3));
+
+        const petalMaterial = new THREE.PointsMaterial({
+            size: 0.10,
+            map: glowTextureSharp,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: true,
+            transparent: true,
+            opacity: 0.75,
+            sizeAttenuation: true,
+        });
+
+        const petalPoints = new THREE.Points(petalGeometry, petalMaterial);
+        petalPoints.renderOrder = 1;
+        scene.add(petalPoints);
+
+        // ==================== 花蕊粒子 ====================
+        const numPistilParticles = 800;
+        const pistilPositionsArray = new Float32Array(numPistilParticles * 3);
+        const pistilColorsArray = new Float32Array(numPistilParticles * 3);
+        const pistilBasePositions = new Float32Array(numPistilParticles * 3);
+        const pistilRandomParams = new Float32Array(numPistilParticles * 6);
+
+        for (let i = 0; i < numPistilParticles; i++) {
+            const idx3 = i * 3;
+            const theta = Math.random() * Math.PI * 0.55;
+            const phi = Math.random() * Math.PI * 2;
+            const radius = 0.05 + Math.random() * 0.45;
+
+            const x = Math.sin(theta) * Math.cos(phi) * radius;
+            const y = Math.cos(theta) * radius * 0.75 + flowerCenterY + 0.1;
+            const z = Math.sin(theta) * Math.sin(phi) * radius;
+
+            pistilPositionsArray[idx3] = x;
+            pistilPositionsArray[idx3 + 1] = y;
+            pistilPositionsArray[idx3 + 2] = z;
+
+            pistilBasePositions[idx3] = x;
+            pistilBasePositions[idx3 + 1] = y;
+            pistilBasePositions[idx3 + 2] = z;
+
+            const color = new THREE.Color().lerpColors(
+                new THREE.Color('#c8f0a0'),
+                new THREE.Color('#5aaa6e'),
+                Math.random()
+            );
+            pistilColorsArray[idx3] = color.r;
+            pistilColorsArray[idx3 + 1] = color.g;
+            pistilColorsArray[idx3 + 2] = color.b;
+
+            const idx6 = i * 6;
+            pistilRandomParams[idx6] = Math.random() * Math.PI * 2;
+            pistilRandomParams[idx6 + 1] = 2.4 + Math.random() * 3.4;
+            pistilRandomParams[idx6 + 2] = 0.006 + Math.random() * 0.022;
+            pistilRandomParams[idx6 + 3] = Math.random() * Math.PI * 2;
+            pistilRandomParams[idx6 + 4] = 2.4 + Math.random() * 3.4;
+            pistilRandomParams[idx6 + 5] = 0.006 + Math.random() * 0.022;
+        }
+
+        const pistilGeometry = new THREE.BufferGeometry();
+        pistilGeometry.setAttribute('position', new THREE.BufferAttribute(pistilPositionsArray, 3));
+        pistilGeometry.setAttribute('color', new THREE.BufferAttribute(pistilColorsArray, 3));
+
+        const pistilMaterial = new THREE.PointsMaterial({
+            size: 0.06,
+            map: glowTextureSharp,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: true,
+            transparent: true,
+            opacity: 0.80,
+            sizeAttenuation: true,
+        });
+
+        const pistilPoints = new THREE.Points(pistilGeometry, pistilMaterial);
+        pistilPoints.renderOrder = 2;
+        scene.add(pistilPoints);
+
+        // ==================== 圆形环绕飘落粒子 ====================
+        const numFloatingParticles = 420;
+        const floatingPositionsArray = new Float32Array(numFloatingParticles * 3);
+        const floatingColorsArray = new Float32Array(numFloatingParticles * 3);
+        const floatingData = [];
+
+        for (let i = 0; i < numFloatingParticles; i++) {
+            const idx3 = i * 3;
+            const orbitRadius = 1.6 + Math.random() * 4.5;
+            const angle = Math.random() * Math.PI * 2;
+            const x = Math.cos(angle) * orbitRadius;
+            const z = Math.sin(angle) * orbitRadius;
+            const y = flowerCenterY - 1.8 + Math.random() * 5.5;
+
+            floatingPositionsArray[idx3] = x;
+            floatingPositionsArray[idx3 + 1] = y;
+            floatingPositionsArray[idx3 + 2] = z;
+
+            const color = new THREE.Color().setHSL(0.58 + Math.random() * 0.12, 0.6 + Math.random() * 0.4, 0.55 + Math.random() *
+                0.45);
+            floatingColorsArray[idx3] = color.r;
+            floatingColorsArray[idx3 + 1] = color.g;
+            floatingColorsArray[idx3 + 2] = color.b;
+
+            floatingData.push({
+                orbitRadius,
+                angle,
+                baseY: y,
+                speedY: 0.15 + Math.random() * 0.5,
+                amplitude: 0.4 + Math.random() * 1.5,
+                frequency: 0.3 + Math.random() * 0.8,
+                phase: Math.random() * Math.PI * 2,
+                minY: flowerCenterY - 2.8 - Math.random() * 2.5,
+                maxY: flowerCenterY + 3.5 + Math.random() * 2.0,
+                orbitSpeed: (Math.random() - 0.5) * 0.35,
+                verticalPhase: Math.random() * Math.PI * 2,
+            });
+        }
+
+        const floatingGeometry = new THREE.BufferGeometry();
+        floatingGeometry.setAttribute('position', new THREE.BufferAttribute(floatingPositionsArray, 3));
+        floatingGeometry.setAttribute('color', new THREE.BufferAttribute(floatingColorsArray, 3));
+
+        const floatingMaterial = new THREE.PointsMaterial({
+            size: 0.042,
+            map: glowTextureSoft,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: true,
+            transparent: true,
+            opacity: 0.7,
+            sizeAttenuation: true,
+        });
+
+        const floatingPoints = new THREE.Points(floatingGeometry, floatingMaterial);
+        floatingPoints.renderOrder = 0;
+        scene.add(floatingPoints);
+
+        // ==================== 星空背景 ====================
+        const numStarParticles = 900;
+        const starPositionsArray = new Float32Array(numStarParticles * 3);
+        const starColorsArray = new Float32Array(numStarParticles * 3);
+
+        for (let i = 0; i < numStarParticles; i++) {
+            const idx3 = i * 3;
+            const theta = Math.random() * Math.PI;
+            const phi = Math.random() * Math.PI * 2;
+            const radius = 14 + Math.random() * 24;
+
+            starPositionsArray[idx3] = Math.sin(theta) * Math.cos(phi) * radius;
+            starPositionsArray[idx3 + 1] = Math.sin(theta) * Math.sin(phi) * radius;
+            starPositionsArray[idx3 + 2] = Math.cos(theta) * radius;
+
+            const brightness = 0.35 + Math.random() * 0.65;
+            const color = new THREE.Color().setHSL(0.58 + Math.random() * 0.15, 0.3 + Math.random() * 0.5, brightness);
+            starColorsArray[idx3] = color.r;
+            starColorsArray[idx3 + 1] = color.g;
+            starColorsArray[idx3 + 2] = color.b;
+        }
+
+        const starGeometry = new THREE.BufferGeometry();
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositionsArray, 3));
+        starGeometry.setAttribute('color', new THREE.BufferAttribute(starColorsArray, 3));
+
+        const starMaterial = new THREE.PointsMaterial({
+            size: 0.08,
+            map: glowTextureSoft,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: false,
+            transparent: true,
+            opacity: 0.85,
+            sizeAttenuation: true,
+        });
+
+        const starPoints = new THREE.Points(starGeometry, starMaterial);
+        starPoints.renderOrder = -1;
+        scene.add(starPoints);
+
+        // ==================== 地面光晕 ====================
+        const groundGlowY = flowerCenterY - 3.2;
+        const groundGlowGeometry = new THREE.PlaneGeometry(12, 12);
+        const groundGlowMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uColor: { value: new THREE.Color('#1a3d6e') },
+            },
+            vertexShader: /*glsl*/ `
+            varying vec2 vUv;
+            varying vec3 vWorldPos;
+            void main() {
+              vec4 worldPos = modelMatrix * vec4(position,1.0);
+              vWorldPos = worldPos.xyz;
+              vUv = uv;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+            }`,
+            fragmentShader: /*glsl*/ `
+            varying vec2 vUv;
+            varying vec3 vWorldPos;
+            uniform float uTime;
+            uniform vec3 uColor;
+            void main() {
+              float dist = length(vUv - 0.5) * 2.0;
+              float glow = exp(-dist * 2.4) * 0.45;
+              glow += exp(-dist * 4.8) * 0.28;
+              glow *= 0.7 + 0.3 * sin(uTime * 0.6 + dist * 3.8);
+              float alpha = glow * smoothstep(1.0, 0.0, dist);
+              gl_FragColor = vec4(uColor, alpha * 0.55);
+            }`,
+            transparent: true,
+            depthWrite: false,
+            depthTest: true,
+            blending: THREE.AdditiveBlending,
+        });
+        const groundGlow = new THREE.Mesh(groundGlowGeometry, groundGlowMaterial);
+        groundGlow.rotation.x = -Math.PI / 2;
+        groundGlow.position.y = groundGlowY;
+        groundGlow.renderOrder = 0;
+        scene.add(groundGlow);
+
+        // ==================== 背景系统 (星云、极光等) ====================
+        const nebulaDomeGeo = new THREE.SphereGeometry(70, 80, 56);
+        const nebulaDomeMat = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+            },
+            vertexShader: /*glsl*/ `
+            varying vec3 vWorldPos;
+            varying vec3 vNormal;
+            varying vec2 vUv;
+            void main() {
+              vec4 worldPos = modelMatrix * vec4(position, 1.0);
+              vWorldPos = worldPos.xyz;
+              vNormal = normalize(mat3(modelMatrix) * normal);
+              vUv = uv;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }`,
+            fragmentShader: /*glsl*/ `
+            varying vec3 vWorldPos;
+            varying vec3 vNormal;
+            varying vec2 vUv;
+            uniform float uTime;
+            float hash(vec3 p) {
+              float h = dot(p, vec3(127.1, 311.7, 74.7));
+              return fract(sin(h) * 43758.5453);
+            }
+            float noise3D(vec3 p) {
+              vec3 i = floor(p);
+              vec3 f = fract(p);
+              f = f * f * (3.0 - 2.0 * f);
+              return mix(
+                mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x),
+                    mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                    mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+            }
+            float fbm(vec3 p) {
+              float val = 0.0;
+              float amp = 0.5;
+              float freq = 1.0;
+              float lacunarity = 2.3;
+              float persistence = 0.55;
+              for(int i = 0; i < 6; i++) {
+                val += amp * noise3D(p * freq);
+                freq *= lacunarity;
+                amp *= persistence;
+              }
+              return val;
+            }
+            void main() {
+              vec3 dir = normalize(vWorldPos);
+              vec3 nebCoord = dir * 5.2 + vec3(uTime * 0.004, uTime * 0.002, 0.0);
+              float n1 = fbm(nebCoord);
+              float n2 = fbm(nebCoord * 1.9 + vec3(0.0, 0.0, uTime * 0.006));
+              float n3 = fbm(nebCoord * 3.5 + vec3(uTime * 0.010, 0.0, 0.0));
+              vec3 col1 = vec3(0.01, 0.02, 0.08);
+              vec3 col2 = vec3(0.04, 0.06, 0.18);
+              vec3 col3 = vec3(0.08, 0.04, 0.14);
+              vec3 col4 = vec3(0.05, 0.10, 0.25);
+              float mix1 = smoothstep(0.25, 0.7, n1);
+              float mix2 = smoothstep(0.4, 0.75, n2);
+              float mix3 = smoothstep(0.35, 0.65, n3);
+              vec3 nebColor = col1;
+              nebColor = mix(nebColor, col2, mix1 * 0.65);
+              nebColor = mix(nebColor, col3, mix2 * 0.4);
+              nebColor = mix(nebColor, col4, mix3 * 0.5);
+              float starField = hash(floor(dir * 320.0 + uTime * 0.001));
+              float starBright = smoothstep(0.987, 1.0, starField);
+              float starTwinkle = sin(uTime * 3.0 + starField * 80.0) * 0.5 + 0.5;
+              nebColor += vec3(0.25, 0.4, 0.65) * starBright * starTwinkle * 0.5;
+              float edgeFade = 1.0 - abs(vNormal.z) * 0.4;
+              nebColor *= edgeFade;
+              float alpha = 0.32 + mix1 * 0.13 + mix3 * 0.08;
+              gl_FragColor = vec4(nebColor, alpha);
+            }`,
+            transparent: true,
+            depthWrite: false,
+            depthTest: false,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+        });
+        const nebulaDome = new THREE.Mesh(nebulaDomeGeo, nebulaDomeMat);
+        nebulaDome.renderOrder = -10;
+        nebulaDome.frustumCulled = false;
+        scene.add(nebulaDome);
+
+        // --- 极光丝带 (3条) ---
+        const auroraRibbons = [];
+        const auroraColors = [
+            new THREE.Color('#44aacc'),
+            new THREE.Color('#3388bb'),
+            new THREE.Color('#55bbdd'),
+        ];
+        for (let a = 0; a < 3; a++) {
+            const ribbonGeo = new THREE.PlaneGeometry(22, 2.8, 100, 12);
+            const posArr = ribbonGeo.attributes.position.array;
+            for (let i = 0; i < posArr.length; i += 3) {
+                const x = posArr[i];
+                const y = posArr[i + 1];
+                const z = posArr[i + 2];
+                const waveX = Math.sin(x * 0.5 + a * 2.1) * 2.5;
+                const waveZ = Math.cos(x * 0.45 + a * 1.8) * 1.8;
+                posArr[i] = x + waveX * 0.5;
+                posArr[i + 1] = y + Math.abs(x) * 0.08;
+                posArr[i + 2] = z + waveZ * 0.5;
+            }
+            ribbonGeo.computeVertexNormals();
+            const ribbonMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uColor: { value: auroraColors[a] },
+                    uIndex: { value: a },
+                },
+                vertexShader: /*glsl*/ `
+                varying vec2 vUv;
+                varying vec3 vPos;
+                void main() {
+                  vUv = uv;
+                  vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                  vPos = worldPos.xyz;
+                  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }`,
+                fragmentShader: /*glsl*/ `
+                varying vec2 vUv;
+                varying vec3 vPos;
+                uniform float uTime;
+                uniform vec3 uColor;
+                uniform float uIndex;
+                float hash(vec2 p) {
+                  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+                }
+                float noise2D(vec2 p) {
+                  vec2 i = floor(p);
+                  vec2 f = fract(p);
+                  f = f * f * (3.0 - 2.0 * f);
+                  return mix(
+                    mix(hash(i), hash(i + vec2(1,0)), f.x),
+                    mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y);
+                }
+                void main() {
+                  vec2 coord = vUv * vec2(8.0, 2.5) + vec2(uTime * 0.15, uTime * 0.06 + uIndex);
+                  float n = noise2D(coord);
+                  float n2 = noise2D(coord * 1.7 + vec2(0.0, uTime * 0.1));
+                  float brightness = smoothstep(0.3, 0.7, n) * smoothstep(0.2, 0.6, n2);
+                  float edgeFade = 1.0 - abs(vUv.y - 0.5) * 2.2;
+                  edgeFade = smoothstep(0.0, 1.0, edgeFade);
+                  float alpha = brightness * edgeFade * 0.5;
+                  vec3 col = uColor * (1.0 + brightness * 0.8);
+                  gl_FragColor = vec4(col, alpha);
+                }`,
+                transparent: true,
+                depthWrite: false,
+                depthTest: false,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide,
+            });
+            const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat);
+            ribbon.position.set(0, flowerCenterY + 6.5 + a * 1.6, 0);
+            ribbon.rotation.x = -0.25 + a * 0.12;
+            ribbon.rotation.z = a * 0.4 - 0.4;
+            ribbon.renderOrder = -8;
+            ribbon.frustumCulled = false;
+            scene.add(ribbon);
+            auroraRibbons.push({ mesh: ribbon, material: ribbonMat });
+        }
+
+        // --- 巨型粒子环 (2层) ---
+        const ringSystems = [];
+        for (let r = 0; r < 2; r++) {
+            const ringRadius = 8.5 + r * 3.5;
+            const ringParticles = 400 + r * 200;
+            const ringPosArr = new Float32Array(ringParticles * 3);
+            const ringColArr = new Float32Array(ringParticles * 3);
+            const ringDataArr = [];
+            for (let i = 0; i < ringParticles; i++) {
+                const idx3 = i * 3;
+                const angle = Math.random() * Math.PI * 2;
+                const radiusJitter = ringRadius + (Math.random() - 0.5) * 2.5;
+                const heightJitter = (Math.random() - 0.5) * 1.8;
+                const x = Math.cos(angle) * radiusJitter;
+                const z = Math.sin(angle) * radiusJitter;
+                const y = flowerCenterY + heightJitter;
+                ringPosArr[idx3] = x;
+                ringPosArr[idx3 + 1] = y;
+                ringPosArr[idx3 + 2] = z;
+                const hue = 0.56 + Math.random() * 0.1;
+                const sat = 0.4 + Math.random() * 0.5;
+                const light = 0.35 + Math.random() * 0.5;
+                const col = new THREE.Color().setHSL(hue, sat, light);
+                ringColArr[idx3] = col.r;
+                ringColArr[idx3 + 1] = col.g;
+                ringColArr[idx3 + 2] = col.b;
+                ringDataArr.push({
+                    baseAngle: angle,
+                    radius: radiusJitter,
+                    baseY: y,
+                    orbitSpeed: 0.03 + Math.random() * 0.08,
+                    floatAmp: 0.2 + Math.random() * 0.6,
+                    floatFreq: 0.4 + Math.random() * 1.2,
+                    floatPhase: Math.random() * Math.PI * 2,
+                });
+            }
+            const ringGeo = new THREE.BufferGeometry();
+            ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPosArr, 3));
+            ringGeo.setAttribute('color', new THREE.BufferAttribute(ringColArr, 3));
+            const ringMat = new THREE.PointsMaterial({
+                size: 0.06 + r * 0.02,
+                map: glowTextureSoft,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                depthTest: true,
+                transparent: true,
+                opacity: 0.5 - r * 0.1,
+                sizeAttenuation: true,
+            });
+            const ringMesh = new THREE.Points(ringGeo, ringMat);
+            ringMesh.renderOrder = -5 + r;
+            ringMesh.rotation.x = r * 0.35;
+            ringMesh.rotation.z = r * 0.2;
+            scene.add(ringMesh);
+            ringSystems.push({
+                mesh: ringMesh,
+                geometry: ringGeo,
+                data: ringDataArr,
+                rotationSpeed: 0.04 + r * 0.03,
+                tiltX: r * 0.35,
+                tiltZ: r * 0.2,
+            });
+        }
+
+        // --- 光柱粒子 ---
+        const numPillarParticles = 350;
+        const pillarPosArr = new Float32Array(numPillarParticles * 3);
+        const pillarColArr = new Float32Array(numPillarParticles * 3);
+        const pillarDataArr = [];
+        for (let i = 0; i < numPillarParticles; i++) {
+            const idx3 = i * 3;
+            const t = Math.random();
+            const height = t * 8.5;
+            const spreadAngle = Math.random() * Math.PI * 2;
+            const spreadRadius = Math.pow(t, 1.5) * 2.2 + 0.1;
+            const x = Math.cos(spreadAngle) * spreadRadius;
+            const z = Math.sin(spreadAngle) * spreadRadius;
+            const y = flowerCenterY + height;
+            pillarPosArr[idx3] = x;
+            pillarPosArr[idx3 + 1] = y;
+            pillarPosArr[idx3 + 2] = z;
+            const col = new THREE.Color().setHSL(0.57 + Math.random() * 0.08, 0.5 + Math.random() * 0.5, 0.5 + Math.random() *
+                0.5);
+            pillarColArr[idx3] = col.r;
+            pillarColArr[idx3 + 1] = col.g;
+            pillarColArr[idx3 + 2] = col.b;
+            pillarDataArr.push({
+                baseX: x,
+                baseZ: z,
+                baseY: y,
+                maxHeight: flowerCenterY + 8.5,
+                minHeight: flowerCenterY,
+                speed: 0.3 + Math.random() * 1.5,
+                phase: Math.random() * Math.PI * 2,
+                swayAmp: 0.3 + Math.random() * 0.8,
+                swayFreq: 0.5 + Math.random() * 1.5,
+            });
+        }
+        const pillarGeo = new THREE.BufferGeometry();
+        pillarGeo.setAttribute('position', new THREE.BufferAttribute(pillarPosArr, 3));
+        pillarGeo.setAttribute('color', new THREE.BufferAttribute(pillarColArr, 3));
+        const pillarMat = new THREE.PointsMaterial({
+            size: 0.045,
+            map: glowTextureTiny,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: true,
+            transparent: true,
+            opacity: 0.55,
+            sizeAttenuation: true,
+        });
+        const pillarPoints = new THREE.Points(pillarGeo, pillarMat);
+        pillarPoints.renderOrder = -3;
+        scene.add(pillarPoints);
+
+        // --- 底部光池 ---
+        const bigGlowGeo = new THREE.PlaneGeometry(18, 18);
+        const bigGlowMat = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uColor: { value: new THREE.Color('#0d2a55') },
+            },
+            vertexShader: /*glsl*/ `
+            varying vec2 vUv;
+            void main() {
+              vUv = uv;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }`,
+            fragmentShader: /*glsl*/ `
+            varying vec2 vUv;
+            uniform float uTime;
+            uniform vec3 uColor;
+            void main() {
+              float dist = length(vUv - 0.5) * 2.0;
+              float glow = exp(-dist * 1.6) * 0.55;
+              glow += exp(-dist * 3.2) * 0.35;
+              glow += exp(-dist * 6.0) * 0.18;
+              float pulse = 0.7 + 0.3 * sin(uTime * 0.45 + dist * 2.5);
+              glow *= pulse;
+              float alpha = glow * smoothstep(1.0, 0.15, dist);
+              gl_FragColor = vec4(uColor, alpha * 0.5);
+            }`,
+            transparent: true,
+            depthWrite: false,
+            depthTest: true,
+            blending: THREE.AdditiveBlending,
+        });
+        const bigGlowPlane = new THREE.Mesh(bigGlowGeo, bigGlowMat);
+        bigGlowPlane.rotation.x = -Math.PI / 2;
+        bigGlowPlane.position.y = groundGlowY - 0.2;
+        bigGlowPlane.renderOrder = -2;
+        scene.add(bigGlowPlane);
+
+        // --- 星尘云团 ---
+        const numDustClouds = 5;
+        const dustClouds = [];
+        for (let d = 0; d < numDustClouds; d++) {
+            const cloudParticles = 180;
+            const cloudPosArr = new Float32Array(cloudParticles * 3);
+            const cloudColArr = new Float32Array(cloudParticles * 3);
+            const centerX = (Math.random() - 0.5) * 20;
+            const centerY = flowerCenterY + (Math.random() - 0.5) * 10;
+            const centerZ = (Math.random() - 0.5) * 20;
+            const cloudRadius = 2.5 + Math.random() * 5;
+            for (let i = 0; i < cloudParticles; i++) {
+                const idx3 = i * 3;
+                const theta = Math.random() * Math.PI;
+                const phi = Math.random() * Math.PI * 2;
+                const r = Math.pow(Math.random(), 0.6) * cloudRadius;
+                cloudPosArr[idx3] = centerX + Math.sin(theta) * Math.cos(phi) * r;
+                cloudPosArr[idx3 + 1] = centerY + Math.sin(theta) * Math.sin(phi) * r;
+                cloudPosArr[idx3 + 2] = centerZ + Math.cos(theta) * r;
+                const col = new THREE.Color().setHSL(0.56 + Math.random() * 0.12, 0.3 + Math.random() * 0.5, 0.3 + Math.random() *
+                    0.45);
+                cloudColArr[idx3] = col.r;
+                cloudColArr[idx3 + 1] = col.g;
+                cloudColArr[idx3 + 2] = col.b;
+            }
+            const cloudGeo = new THREE.BufferGeometry();
+            cloudGeo.setAttribute('position', new THREE.BufferAttribute(cloudPosArr, 3));
+            cloudGeo.setAttribute('color', new THREE.BufferAttribute(cloudColArr, 3));
+            const cloudMat = new THREE.PointsMaterial({
+                size: 0.18 + Math.random() * 0.3,
+                map: glowTextureSoft,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                depthTest: true,
+                transparent: true,
+                opacity: 0.25 + Math.random() * 0.2,
+                sizeAttenuation: true,
+            });
+            const cloudMesh = new THREE.Points(cloudGeo, cloudMat);
+            cloudMesh.renderOrder = -6;
+            cloudMesh.userData = {
+                rotSpeed: (Math.random() - 0.5) * 0.06,
+                floatSpeed: 0.1 + Math.random() * 0.3,
+                floatAmp: 0.3 + Math.random() * 1.2,
+                floatPhase: Math.random() * Math.PI * 2,
+                baseY: centerY,
+            };
+            scene.add(cloudMesh);
+            dustClouds.push(cloudMesh);
+        }
+
+        // ==================== UI事件处理 ====================
+        bloomSlider.addEventListener('input', () => {
+            targetBloomAngle = parseInt(bloomSlider.value) / 100;
+            bloomValueEl.textContent = Math.round(targetBloomAngle * 100) + '%';
+            autoBloomEnabled = false;
+            btnAutoBloom.classList.remove('active');
+        });
+
+        btnMicroMotion.addEventListener('click', () => {
+            microMotionEnabled = !microMotionEnabled;
+            if (microMotionEnabled) {
+                btnMicroMotion.classList.add('active');
+            } else {
+                btnMicroMotion.classList.remove('active');
+            }
+        });
+
+        btnAutoBloom.addEventListener('click', () => {
+            autoBloomEnabled = !autoBloomEnabled;
+            if (autoBloomEnabled) {
+                btnAutoBloom.classList.add('active');
+                autoBloomDirection = targetBloomAngle < 0.5 ? 1 : -1;
+            } else {
+                btnAutoBloom.classList.remove('active');
+            }
+        });
+
+        btnResetView.addEventListener('click', () => {
+            const startTarget = controls.target.clone();
+            const endTarget = new THREE.Vector3(0, flowerCenterY, 0);
+            const startCam = camera.position.clone();
+            const endCam = new THREE.Vector3(7.5, 3.5, 12.0);
+            const startTime = performance.now();
+            const duration = 800;
+            function animateReset(time) {
+                const elapsed = time - startTime;
+                const t = Math.min(elapsed / duration, 1.0);
+                const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                controls.target.lerpVectors(startTarget, endTarget, eased);
+                camera.position.lerpVectors(startCam, endCam, eased);
+                controls.update();
+                if (t < 1) {
+                    requestAnimationFrame(animateReset);
+                }
+            }
+            requestAnimationFrame(animateReset);
+        });
+
+        setTimeout(() => {
+            hintEl.style.opacity = '0';
+            setTimeout(() => { hintEl.textContent = ''; }, 1500);
+        }, 8000);
+
+        renderer.domElement.addEventListener('touchstart', () => {
+            hintEl.style.opacity = '0';
+        }, { once: true });
+        renderer.domElement.addEventListener('pointerdown', () => {
+            hintEl.style.opacity = '0';
+        }, { once: true });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            nebulaDomeMat.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+        });
+
+        // ==================== 动画循环 ====================
+        const clock = new THREE.Clock();
+        let lastBloomAngle = bloomAngle;
+
+        function animate(timestamp) {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.1);
+            const elapsedTime = timestamp * 0.001;
+
+            controls.update();
+
+            if (autoBloomEnabled) {
+                targetBloomAngle += autoBloomDirection * autoBloomSpeed * dt;
+                if (targetBloomAngle >= 1.0) {
+                    targetBloomAngle = 1.0;
+                    autoBloomDirection = -1;
+                } else if (targetBloomAngle <= 0.0) {
+                    targetBloomAngle = 0.0;
+                    autoBloomDirection = 1;
+                }
+                bloomSlider.value = Math.round(targetBloomAngle * 100);
+                bloomValueEl.textContent = Math.round(targetBloomAngle * 100) + '%';
+            }
+
+            if (Math.abs(targetBloomAngle - bloomAngle) > 0.0005) {
+                bloomAngle += (targetBloomAngle - bloomAngle) * Math.min(dt * 5.5, 0.95);
+                if (Math.abs(targetBloomAngle - bloomAngle) < 0.001) bloomAngle = targetBloomAngle;
+            }
+
+            const posAttr = petalGeometry.getAttribute('position');
+            const posArray = posAttr.array;
+            const needsPetalUpdate = Math.abs(bloomAngle - lastBloomAngle) > 0.0001 || microMotionEnabled;
+
+            if (needsPetalUpdate) {
+                const invBloom = 1 - bloomAngle;
+                for (let i = 0; i < totalPetalParticles; i++) {
+                    const idx3 = i * 3;
+                    const cx = petalBaseClosedArray[idx3];
+                    const cy = petalBaseClosedArray[idx3 + 1];
+                    const cz = petalBaseClosedArray[idx3 + 2];
+                    const ox = petalBaseOpenArray[idx3];
+                    const oy = petalBaseOpenArray[idx3 + 1];
+                    const oz = petalBaseOpenArray[idx3 + 2];
+
+                    let px = cx * invBloom + ox * bloomAngle;
+                    let py = cy * invBloom + oy * bloomAngle;
+                    let pz = cz * invBloom + oz * bloomAngle;
+
+                    if (microMotionEnabled) {
+                        const idx6 = i * 6;
+                        const phaseX = petalRandomOffsets[idx6];
+                        const freqX = petalRandomOffsets[idx6 + 1];
+                        const ampX = petalRandomOffsets[idx6 + 2];
+                        const phaseY = petalRandomOffsets[idx6 + 3];
+                        const freqY = petalRandomOffsets[idx6 + 4];
+                        const ampY = petalRandomOffsets[idx6 + 5];
+                        const microX = Math.sin(elapsedTime * freqX + phaseX) * ampX;
+                        const microY = Math.cos(elapsedTime * freqY + phaseY) * ampY;
+                        const microZ = Math.sin(elapsedTime * (freqX + freqY) * 0.7 + phaseY) * ampX * 0.8;
+                        px += microX; py += microY; pz += microZ;
+                    }
+                    posArray[idx3] = px;
+                    posArray[idx3 + 1] = py;
+                    posArray[idx3 + 2] = pz;
+                }
+                posAttr.needsUpdate = true;
+                lastBloomAngle = bloomAngle;
+            }
+
+            if (microMotionEnabled) {
+                const pistilPosAttr = pistilGeometry.getAttribute('position');
+                const pistilPosArray = pistilPosAttr.array;
+                for (let i = 0; i < numPistilParticles; i++) {
+                    const idx3 = i * 3;
+                    const idx6 = i * 6;
+                    const bx = pistilBasePositions[idx3];
+                    const by = pistilBasePositions[idx3 + 1];
+                    const bz = pistilBasePositions[idx3 + 2];
+                    const microX = Math.sin(elapsedTime * pistilRandomParams[idx6 + 1] + pistilRandomParams[idx6]) * pistilRandomParams[idx6 + 2];
+                    const microY = Math.cos(elapsedTime * pistilRandomParams[idx6 + 4] + pistilRandomParams[idx6 + 3]) * pistilRandomParams[idx6 + 5];
+                    const microZ = Math.sin(elapsedTime * (pistilRandomParams[idx6 + 1] + pistilRandomParams[idx6 + 4]) * 0.6 + pistilRandomParams[idx6 + 3]) * pistilRandomParams[idx6 + 2] * 0.7;
+                    pistilPosArray[idx3] = bx + microX;
+                    pistilPosArray[idx3 + 1] = by + microY;
+                    pistilPosArray[idx3 + 2] = bz + microZ;
+                }
+                pistilPosAttr.needsUpdate = true;
+            }
+
+            const floatPosAttr = floatingGeometry.getAttribute('position');
+            const floatPosArray = floatPosAttr.array;
+            for (let i = 0; i < numFloatingParticles; i++) {
+                const idx3 = i * 3;
+                const fd = floatingData[i];
+                fd.angle += fd.orbitSpeed * dt;
+                let y = floatPosArray[idx3 + 1] - fd.speedY * dt;
+                if (y < fd.minY) y = fd.maxY;
+                if (y > fd.maxY) y = fd.minY;
+                const swayX = Math.sin(elapsedTime * fd.frequency + fd.phase) * fd.amplitude * 0.4;
+                const swayZ = Math.cos(elapsedTime * fd.frequency + fd.phase + 1.3) * fd.amplitude * 0.4;
+                const cx = Math.cos(fd.angle) * fd.orbitRadius;
+                const cz = Math.sin(fd.angle) * fd.orbitRadius;
+                floatPosArray[idx3] = cx + swayX;
+                floatPosArray[idx3 + 1] = y + Math.sin(elapsedTime * 0.7 + fd.verticalPhase) * fd.amplitude * 0.5;
+                floatPosArray[idx3 + 2] = cz + swayZ;
+            }
+            floatPosAttr.needsUpdate = true;
+
+            nebulaDomeMat.uniforms.uTime.value = elapsedTime;
+            nebulaDome.rotation.y += dt * 0.01;
+            nebulaDome.rotation.x += dt * 0.002;
+
+            for (const ribbon of auroraRibbons) {
+                ribbon.material.uniforms.uTime.value = elapsedTime;
+                ribbon.mesh.position.y = flowerCenterY + 6.5 + Math.sin(elapsedTime * 0.25 + ribbon.material.uniforms.uIndex.value) * 0.8;
+            }
+
+            for (const rs of ringSystems) {
+                rs.mesh.rotation.y += rs.rotationSpeed * dt;
+                const posAttrR = rs.geometry.getAttribute('position');
+                const posArrR = posAttrR.array;
+                for (let i = 0; i < rs.data.length; i++) {
+                    const idx3 = i * 3;
+                    const rd = rs.data[i];
+                    const newAngle = rd.baseAngle + rs.mesh.rotation.y;
+                    const floatY = Math.sin(elapsedTime * rd.floatFreq + rd.floatPhase) * rd.floatAmp;
+                    posArrR[idx3] = Math.cos(newAngle) * rd.radius;
+                    posArrR[idx3 + 1] = rd.baseY + floatY;
+                    posArrR[idx3 + 2] = Math.sin(newAngle) * rd.radius;
+                }
+                posAttrR.needsUpdate = true;
+            }
+
+            const pillarPosAttr = pillarGeo.getAttribute('position');
+            const pillarPosArr2 = pillarPosAttr.array;
+            for (let i = 0; i < numPillarParticles; i++) {
+                const idx3 = i * 3;
+                const pd = pillarDataArr[i];
+                let newY = pillarPosArr2[idx3 + 1] + pd.speed * dt;
+                if (newY > pd.maxHeight) newY = pd.minHeight;
+                if (newY < pd.minHeight) newY = pd.maxHeight;
+                const tNorm = (newY - pd.minHeight) / (pd.maxHeight - pd.minHeight);
+                const spreadR = Math.pow(tNorm, 1.5) * 2.2 + 0.1;
+                const swayX = Math.sin(elapsedTime * pd.swayFreq + pd.phase) * pd.swayAmp * tNorm;
+                const swayZ = Math.cos(elapsedTime * pd.swayFreq + pd.phase + 1.8) * pd.swayAmp * tNorm;
+                const baseAngle = Math.atan2(pd.baseZ, pd.baseX);
+                pillarPosArr2[idx3] = Math.cos(baseAngle) * spreadR + swayX;
+                pillarPosArr2[idx3 + 1] = newY;
+                pillarPosArr2[idx3 + 2] = Math.sin(baseAngle) * spreadR + swayZ;
+            }
+            pillarPosAttr.needsUpdate = true;
+
+            bigGlowMat.uniforms.uTime.value = elapsedTime;
+            groundGlowMaterial.uniforms.uTime.value = elapsedTime;
+
+            for (const cloud of dustClouds) {
+                cloud.rotation.y += cloud.userData.rotSpeed * dt;
+                cloud.position.y = cloud.userData.baseY + Math.sin(elapsedTime * cloud.userData.floatSpeed + cloud.userData.floatPhase) * cloud.userData.floatAmp;
+            }
+
+            flowerSpotLight.intensity = 10.5 + Math.sin(elapsedTime * 0.7) * 2.0;
+            renderer.render(scene, camera);
+        }
+
+        bloomSlider.value = Math.round(targetBloomAngle * 100);
+        bloomValueEl.textContent = Math.round(targetBloomAngle * 100) + '%';
+        requestAnimationFrame(animate);
+
+        window.addEventListener('keydown', (e) => {
+            switch (e.key.toLowerCase()) {
+                case 'm':
+                    microMotionEnabled = !microMotionEnabled;
+                    btnMicroMotion.click();
+                    break;
+                case 'a':
+                    autoBloomEnabled = !autoBloomEnabled;
+                    btnAutoBloom.click();
+                    break;
+                case 'r':
+                    btnResetView.click();
+                    break;
+                case 'arrowleft':
+                    targetBloomAngle = Math.max(0, targetBloomAngle - 0.05);
+                    bloomSlider.value = Math.round(targetBloomAngle * 100);
+                    bloomValueEl.textContent = Math.round(targetBloomAngle * 100) + '%';
+                    autoBloomEnabled = false;
+                    btnAutoBloom.classList.remove('active');
+                    break;
+                case 'arrowright':
+                    targetBloomAngle = Math.min(1, targetBloomAngle + 0.05);
+                    bloomSlider.value = Math.round(targetBloomAngle * 100);
+                    bloomValueEl.textContent = Math.round(targetBloomAngle * 100) + '%';
+                    autoBloomEnabled = false;
+                    btnAutoBloom.classList.remove('active');
+                    break;
+            }
+        });
+
+        console.log('🌷 3D粉色渐变粒子花朵 (完全平铺 · 渐变色) 已就绪');
+        console.log('  🌸 花瓣弯曲量0、厚度0，完全在XY平面展开');
+        console.log('  🎨 花瓣粒子已使用粉色渐变，花蕊为绿色');
+    </script>
+</body>
+</html>
